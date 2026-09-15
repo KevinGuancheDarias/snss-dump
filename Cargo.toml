@@ -1,0 +1,7 @@
+[package]
+name = "snss-dump"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+snss-core = "0.1"
