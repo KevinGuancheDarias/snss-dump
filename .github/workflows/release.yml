@@ -96,7 +96,7 @@ jobs:
         if: ${{ env.IS_PUSH == 'true' }}
         run: |
           set -euo pipefail
-          gh release download "$GITHUB_REF_NAME" --dir dist --clobber
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --dir dist --clobber
           (cd dist; sha256sum snss-dump-x86_64-unknown-linux-gnu.zip snss-dump-x86_64-pc-windows-msvc.zip > SHA256SUMS)
           ls -1 dist
           cat dist/SHA256SUMS
@@ -107,7 +107,7 @@ jobs:
           IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref_name, 'v') }}
           GH_PAT: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ env.IS_PUSH == 'true' && steps.checksums.outcome == 'success' }}
-        run: gh release upload "$GITHUB_REF_NAME" dist/SHA256SUMS --clobber
+        run: gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" dist/SHA256SUMS --clobber
 
       - name: Build-only smoke test summary
         env:
