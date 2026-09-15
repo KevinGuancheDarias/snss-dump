@@ -1,0 +1,71 @@
+name: Release
+
+# On a pushed version tag, build native x64 release binaries for
+# Windows and Linux and attach them to the GitHub release as zip assets.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: ".exe"
+            suffix: "pc-windows-msvc"
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            ext: ""
+            suffix: "unknown-linux-gnu"
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust target
+        run: |
+          rustup default stable
+          rustup target add ${{ matrix.target }}
+
+      - name: Build release
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Verify binary
+        shell: bash
+        run: test -s "target/release/snss-dump${{ matrix.ext }}"
+
+      - name: Package (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd target/release
+          strip snss-dump 2>/dev/null || true
+          mv snss-dump "snss-dump-x86_64-unknown-linux-gnu"
+          zip -9 -q "../snss-dump-x86_64-unknown-linux-gnu.zip" "snss-dump-x86_64-unknown-linux-gnu"
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          cd target/release
+          cp snss-dump.exe "snss-dump-x86_64-pc-windows-msvc.exe"
+          powershell -NoProfile -Command "Compress-Archive -Force -Path 'snss-dump-x86_64-pc-windows-msvc.exe' -DestinationPath '../snss-dump-x86_64-pc-windows-msvc.zip'"
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: 'true'
+          files: target/release/snss-dump-x86_64-${{ matrix.suffix }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
