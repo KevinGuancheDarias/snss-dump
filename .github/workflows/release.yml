@@ -66,19 +66,13 @@ jobs:
 
       - name: Upload release assets
         # Only on a real version-tag push, never on the build-only dispatch.
-        if: ${{ github.event == 'push' && startsWith(github.ref_name, 'v') }}
+        if: ${{ github.event_name == 'push' && startsWith(github.ref_name, 'v') }}
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: 'true'
           files: "target/${{ matrix.target }}/snss-dump-x86_64-${{ matrix.suffix }}.zip"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  diag:
-    runs-on: ubuntu-latest
-    steps:
-      - name: print-event
-        run: echo "EVENT=[${{ github.event }}] EVENTNAME=[${{ github.event_name }}] REF_NAME=[${{ github.ref_name }}] REF=[${{ github.ref }}] IS_EXP=[${{ github.event == 'push' && startsWith(github.ref_name, 'v') }}]"
 
   # Runs after both matrix legs. On a manual dispatch it only reports the
   # builds; on a tag push it additionally attaches a single SHA256SUMS file.
@@ -90,14 +84,14 @@ jobs:
       - name: Tag push (no-op placeholder, keeps job graph intact for dispatch)
         id: flag
         env:
-          IS_PUSH: ${{ github.event == 'push' && startsWith(github.ref_name, 'v') }}
+          IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref_name, 'v') }}
         if: ${{ env.IS_PUSH == 'false' }}
         run: echo "(dispatch run — skipping release actions)"
 
       - name: Compute SHA256SUMS
         id: checksums
         env:
-          IS_PUSH: ${{ github.event == 'push' && startsWith(github.ref_name, 'v') }}
+          IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref_name, 'v') }}
           GH_PAT: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ env.IS_PUSH == 'true' }}
         run: |
@@ -110,14 +104,14 @@ jobs:
 
       - name: Upload SHA256SUMS to the release
         env:
-          IS_PUSH: ${{ github.event == 'push' && startsWith(github.ref_name, 'v') }}
+          IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref_name, 'v') }}
           GH_PAT: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ env.IS_PUSH == 'true' && steps.checksums.outcome == 'success' }}
         run: gh release upload "$GITHUB_REF_NAME" dist/SHA256SUMS --clobber
 
       - name: Build-only smoke test summary
         env:
-          IS_PUSH: ${{ github.event == 'push' && startsWith(github.ref_name, 'v') }}
+          IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref_name, 'v') }}
         if: ${{ env.IS_PUSH == 'false' }}
         run: |
           echo "# Build-only smoke test"
