@@ -81,18 +81,20 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: ${{ always() && (contains(needs.build.result, 'success')) }}
-    env:
-      IS_PUSH: ${{ github.event == 'push' && startsWith(github.ref_name, 'v') }}
     steps:
       - name: Tag push (no-op placeholder, keeps job graph intact for dispatch)
-        if: ${{ !fromJSON(IS_PUSH) }}
-        run: true
+        id: flag
+        env:
+          IS_PUSH: ${{ github.event == 'push' && startsWith(github.ref_name, 'v') }}
+        if: ${{ env.IS_PUSH == 'false' }}
+        run: echo "(dispatch run — skipping release actions)"
 
       - name: Compute SHA256SUMS
-        if: ${{ fromJSON(IS_PUSH) }}
         id: checksums
         env:
+          IS_PUSH: ${{ github.event == 'push' && startsWith(github.ref_name, 'v') }}
           GH_PAT: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ env.IS_PUSH == 'true' }}
         run: |
           set -euo pipefail
           gh release download "$GITHUB_REF_NAME" --dir dist --clobber
@@ -102,13 +104,16 @@ jobs:
           echo "path=dist/SHA256SUMS" >> "$GITHUB_OUTPUT"
 
       - name: Upload SHA256SUMS to the release
-        if: ${{ fromJSON(IS_PUSH) && steps.checksums.outcome == 'success' }}
         env:
+          IS_PUSH: ${{ github.event == 'push' && startsWith(github.ref_name, 'v') }}
           GH_PAT: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ env.IS_PUSH == 'true' && steps.checksums.outcome == 'success' }}
         run: gh release upload "$GITHUB_REF_NAME" dist/SHA256SUMS --clobber
 
       - name: Build-only smoke test summary
-        if: ${{ !fromJSON(IS_PUSH) }}
+        env:
+          IS_PUSH: ${{ github.event == 'push' && startsWith(github.ref_name, 'v') }}
+        if: ${{ env.IS_PUSH == 'false' }}
         run: |
           echo "# Build-only smoke test"
           echo "Both x64 matrix legs built and packaged without touching the GitHub release."
