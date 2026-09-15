@@ -92,7 +92,7 @@ jobs:
         id: checksums
         env:
           IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref_name, 'v') }}
-          GH_PAT: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ env.IS_PUSH == 'true' }}
         run: |
           set -euo pipefail
@@ -105,7 +105,7 @@ jobs:
       - name: Upload SHA256SUMS to the release
         env:
           IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref_name, 'v') }}
-          GH_PAT: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ env.IS_PUSH == 'true' && steps.checksums.outcome == 'success' }}
         run: gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" dist/SHA256SUMS --clobber
 
