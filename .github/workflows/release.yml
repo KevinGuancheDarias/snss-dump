@@ -25,12 +25,10 @@ jobs:
             target: x86_64-pc-windows-msvc
             ext: ".exe"
             suffix: "pc-windows-msvc"
-            build: true
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             ext: ""
             suffix: "unknown-linux-gnu"
-            build: true
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -67,7 +65,8 @@ jobs:
           powershell -NoProfile -Command "Compress-Archive -Force -Path 'snss-dump-x86_64-pc-windows-msvc.exe' -DestinationPath '../snss-dump-x86_64-pc-windows-msvc.zip'"
 
       - name: Upload release assets
-        if: ${{ matrix.build == true }}
+        # Only on a real version-tag push, never on the build-only dispatch.
+        if: ${{ github.event == 'push' && startsWith(github.ref_name, 'v') }}
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: 'true'
