@@ -74,6 +74,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: print-event
+        run: echo "EVENT=[${{ github.event }}] EVENTNAME=[${{ github.event_name }}] REF_NAME=[${{ github.ref_name }}] REF=[${{ github.ref }}] IS_EXP=[${{ github.event == 'push' && startsWith(github.ref_name, 'v') }}]"
+
   # Runs after both matrix legs. On a manual dispatch it only reports the
   # builds; on a tag push it additionally attaches a single SHA256SUMS file.
   release:
